@@ -6,11 +6,11 @@ import src.zoo_losses_K as zoo_losses_K
 print('Import done')
 
 if os.name == 'nt':
-    GLOBAL_PATH = 'E:\Datasets\\dsbowl2018\\'
+    GLOBAL_PATH = '\\dsbowl2018\\'
 else:
-    GLOBAL_PATH = '/home/nosok/datasets/dsBowl2018/'
+    GLOBAL_PATH = '/datasets/dsBowl2018/'
 
-phase = 'test'
+phases = ['train', 'test']
 unet_input = 224
 batch_size = 24
 dropout = 0.3
@@ -20,7 +20,7 @@ use_bnds = False
 predict_on_crops = False
 norm_type = 'mean_std'
 n_folds = 5
-exclude_folds = [] #[0,1,2,3]
+exclude_folds = []
 use_model = ZF_Seg_ResNet50_224x224
 lr_sched = [[100, 0.0002, '1']]
 loss = zoo_losses_K.dice_coef_and_binary_loss
@@ -32,13 +32,13 @@ if predict_seeds:
 
 seed = 66
 
-if os.name != 'nt':
-    use_multiprocessing = True
-else:
+if os.name == 'nt':
     use_multiprocessing = False
+else:
+    use_multiprocessing = True
 
-if phase == 'train':
-    print('Training stage')
+if 'train' in phases:
+    print('Training phase')
     trainer = Trainer(model=use_model, optimizer=Nadam,
                       batch_size=batch_size, input_size=unet_input, norm_function=norm_type,
                       loss=loss, classes=classes,
@@ -51,7 +51,7 @@ if phase == 'train':
                       dropout=dropout)
     trainer.train()
 
-if phase == 'test':
+if 'test' in phases:
     print('Testing phase')
     Test_dataset = BowlDataset(train_fraction=1, seed=1, phase='test', dataset_return_ids_only=True)
     test_data = Test_dataset.test_data
