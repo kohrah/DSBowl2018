@@ -110,16 +110,12 @@ class BowlDataset(object):
     def create_dict(self):
         bowl_dict = {}
         for idx in tqdm(self.all_data):
-            # print(idx)
             im, ms = self.get_image(idx), self.get_mask(idx)
             im, ms, coords = self.integral_image(im, ms)
             bowl_dict[idx] = (im, ms, coords)
         all_keys = list(bowl_dict.keys())
         train_keys = [x for x in all_keys if 'TCGA' not in x and 'gnf' not in x and 'ic100' not in x]
         additional_keys = [x for x in all_keys if 'TCGA' in x or 'gnf' in x or 'ic100' in x]
-        print(additional_keys)
-        # train_keys = [x for x in all_keys if 'TCGA' not in x]
-        # additional_keys = [x for x in all_keys if 'TCGA' in x]
         return bowl_dict, train_keys, additional_keys
 
 class BowlIterator(Iterator):
@@ -175,9 +171,6 @@ class BowlIterator(Iterator):
         separate_channel = True
         if np.array_equal(img[:, :, 0], img[:, :, 1]) and np.array_equal(img[:, :, 0], img[:, :, 2]):
             separate_channel = False
-
-        # if np.random.uniform(0, 1) < 0.2:
-        #    img1 = normalize_brightness(img1, separate_channel=separate_channel)
         if np.random.uniform(0, 1) < 0.3:
             img1 = random_brightness_change(img1, 0, 30)
         if np.random.uniform(0, 1) < 0.3:
@@ -193,7 +186,6 @@ class BowlIterator(Iterator):
             img1 = random_intensity_change(img1, min_change, max_change, separate_channel=separate_channel)
         if np.random.uniform(0, 1) < 0.2:
             img1 = apply_brightness_renormalization(img1, 1, 5, 8, 12)
-
         return img1
 
     def _get_batches_of_transformed_samples(self, index_array):
@@ -214,15 +206,7 @@ class BowlIterator(Iterator):
             if self.is_train:
                 img, msk = self.ShiftScaleRotate(img, msk)
                 img, msk = self.Distort(img, msk)
-            # if img.shape[0] < self.im_size and img.shape[1] < self.im_size and self.is_train:
-            #     img, msk = self.ShiftScaleRotate(img, msk)
-            #     img, msk = self.random_put(img, msk)
-            # elif (img.shape[0] > self.im_size+1 or img.shape[1] > self.im_size+1) and len(coords) > 0:
-            #     if self.is_train:
-            #         img, msk = self.ShiftScaleRotate(img, msk)
-            #     img, msk = self.random_crop(img, msk, coords)
-            # else:
-            #     img, msk = cv2.resize(img, (self.im_size, self.im_size)), cv2.resize(msk, (self.im_size, self.im_size))
+
             if self.is_train:
                 rnd_flip = np.random.randint(4, dtype=int)
                 if rnd_flip > 1:
@@ -231,24 +215,19 @@ class BowlIterator(Iterator):
                     msk = cv2.flip(msk, rnd_flip - 1)
 
             img, msk = cv2.resize(img, (self.im_size, self.im_size)), cv2.resize(msk, (self.im_size, self.im_size))
-            # msk = np.round(msk)
+
             masks_, seeds_, weights_ = cv2.split(msk)
             if self.predict_seeds:
                 masks.append(cv2.merge((np.round(masks_), np.round(seeds_))))
             else:
-                # print('1')
                 masks.append(masks_[..., None])
                 weights_ = np.ones((self.im_size, self.im_size), dtype=np.float32)
-            # masks.append(cv2.merge(np.round(masks_)))
             imgs.append(img)
-            # masks.append(msk)
-        # print(len(imgs), len(masks))
         imgs = np.array(imgs)
         masks = np.array(masks)
         return imgs, masks
 
     def next(self):
-        # index_array = next(self.index_generator)
         with self.lock:
             index_array = next(self.index_generator)
         return self._get_batches_of_transformed_samples(index_array)
