@@ -40,7 +40,6 @@ class BowlDataset(object):
             print('Using seed: ', self.seed)
         else:
             self.seed = seed
-        # self.classes = self.get_classes
         self.im_size = im_size
         if dataset_return_ids_only==False:
             self.integral_image = Integral_image(stride=16, kernel=[self.im_size, self.im_size])
